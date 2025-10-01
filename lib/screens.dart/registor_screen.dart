@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
 import 'package:todo_app_ui/widgets/elevatedbutton.dart';
@@ -59,7 +60,7 @@ class RegistorScreen extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     textColor: Colors.black,
-                    onPressed: () {},
+                    onPressed: () => context.go("/loginPage"),
                     backgroundcolor: Appcolors.primarycolor,
                   ),
                   SizedBox(height: 15),
@@ -68,7 +69,7 @@ class RegistorScreen extends StatelessWidget {
                     children: [
                       appText(text: "Already have an account?", fontSize: 15),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () => context.go("/loginPage"),
                         child: appText(
                           text: "Sign in",
                           textcolor: Appcolors.primarycolor,

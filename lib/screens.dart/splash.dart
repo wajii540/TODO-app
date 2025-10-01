@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
 import 'package:todo_app_ui/widgets/elevatedbutton.dart';
@@ -41,7 +42,7 @@ class SplashScreen extends StatelessWidget {
               fontSize: 18,
               fontWeight: FontWeight.w600,
               textColor: Colors.black,
-              onPressed: () {},
+              onPressed: () => context.go("/registor"),
               borderRadius: BorderRadiusDirectional.circular(8),
               backgroundcolor: Color(0xFF62D2C3),
             ),

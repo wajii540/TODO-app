@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
 import 'package:todo_app_ui/widgets/elevatedbutton.dart';
@@ -67,7 +68,7 @@ class LoginScreen extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     textColor: Colors.black,
-                    onPressed: () {},
+                    onPressed: () => context.go("/dashboard"),
                     backgroundcolor: Appcolors.primarycolor,
                   ),
                   Row(
@@ -80,7 +81,7 @@ class LoginScreen extends StatelessWidget {
                         textcolor: Colors.black,
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () => context.go("/registor"),
                         child: appText(
                           text: "Sign Up",
                           fontSize: 15,

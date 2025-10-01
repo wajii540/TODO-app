@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:todo_app_ui/screens.dart/dashboard_screen.dart';
-import 'package:todo_app_ui/screens.dart/login_screen.dart';
-import 'package:todo_app_ui/screens.dart/registor_screen.dart';
-import 'package:todo_app_ui/screens.dart/splash.dart';
+import 'package:todo_app_ui/Navigation/app_routing.dart';
 
 void main() {
   runApp(MyWidget());
@@ -13,10 +10,10 @@ class MyWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true),
-      home: DashboardScreen(),
     );
   }
 }
