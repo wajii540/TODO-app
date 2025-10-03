@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
+import 'package:todo_app_ui/widgets/elevatedbutton.dart';
 import 'package:todo_app_ui/widgets/text_field.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -11,23 +12,26 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // ---- Task Data ----
-  List<Map<String, dynamic>> tasks = [
-    // {"task": "Learn programming", "time": "12am", "done": false},
-    // {"task": "Learn how to cook", "time": "1pm", "done": false},
-    // {"task": "Pick up the kids", "time": "2pm", "done": false},
-  ];
+  List<Map<String, dynamic>> tasks = [];
 
   final TextEditingController _taskController = TextEditingController();
   TimeOfDay? _selectedTime;
 
-  // ---- Dialog for adding new task ----
+  //  Function to add new task
   void _addTaskDialog() {
+    _taskController.clear();
+    _selectedTime = null;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Add Task"),
+          title: appText(
+            text: "Add Task",
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            textcolor: Colors.black,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -40,10 +44,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      _selectedTime == null
-                          ? "No time selected"
-                          : "Time: ${_selectedTime!.format(context)}",
+                    child: appText(
+                      text:
+                          _selectedTime == null
+                              ? "No time selected"
+                              : "Time: ${_selectedTime!.format(context)}",
+                      fontSize: 15,
+                      textcolor: Colors.black,
                     ),
                   ),
                   TextButton(
@@ -58,7 +65,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         });
                       }
                     },
-                    child: const Text("Pick Time"),
+                    child: appText(
+                      text: "Pick Time",
+                      fontSize: 15,
+                      textcolor: Colors.black,
+                    ),
                   ),
                 ],
               ),
@@ -69,9 +80,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text("Cancel"),
+              child: appText(
+                text: "Cancel",
+                fontSize: 15,
+                textcolor: Colors.black,
+              ),
             ),
-            ElevatedButton(
+            appButton(
               onPressed: () {
                 if (_taskController.text.isNotEmpty && _selectedTime != null) {
                   setState(() {
@@ -86,7 +101,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text("Add"),
+              text: "Add",
+              height: 35,
+              width: 90,
+              backgroundcolor: Appcolors.primarycolor,
             ),
           ],
         );
@@ -94,25 +112,136 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  //  Function to edit existing task
+  void _editTaskDialog(int index) {
+    _taskController.text = tasks[index]["task"];
+    _selectedTime = null;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: appText(
+            text: "Edit Task",
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+            textcolor: Colors.black,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              appTextField(
+                controller: _taskController,
+                label: "Task",
+                hintText: "Edit your task",
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: appText(
+                      text:
+                          _selectedTime == null
+                              ? "Old Time: ${tasks[index]["time"]}"
+                              : "New Time: ${_selectedTime!.format(context)}",
+                      fontSize: 15,
+                      textcolor: Colors.black,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final TimeOfDay? picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _selectedTime = picked;
+                        });
+                      }
+                    },
+                    child: appText(
+                      text: "Pick Time",
+                      fontSize: 15,
+                      textcolor: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: appText(
+                text: "Cancel",
+                fontSize: 15,
+                textcolor: Colors.black,
+              ),
+            ),
+            appButton(
+              onPressed: () {
+                if (_taskController.text.isNotEmpty) {
+                  setState(() {
+                    tasks[index]["task"] = _taskController.text;
+                    if (_selectedTime != null) {
+                      tasks[index]["time"] = _selectedTime!.format(context);
+                    }
+                  });
+                  _taskController.clear();
+                  _selectedTime = null;
+                  Navigator.pop(context);
+                }
+              },
+              text: "Save",
+              height: 35,
+              width: 90,
+              backgroundcolor: Appcolors.primarycolor,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  //  Function to clear completed tasks
+  void _clearCompletedTasks() {
+    setState(() {
+      tasks.removeWhere((task) => task["done"] == true);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Appcolors.secondarycolor,
       body: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
         child: Column(
           children: [
-            // ---- Top Header ----
+            //  Top Header
             Stack(
               children: [
                 Container(
-                  height: 300,
+                  height: 250,
                   width: double.infinity,
-                  color: Appcolors.primarycolor,
+                  decoration: BoxDecoration(
+                    color: Appcolors.primarycolor,
+                    boxShadow: [
+                      BoxShadow(
+                        // ignore: deprecated_member_use
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                 ),
                 const Image(image: AssetImage("assets/images/shape (1).png")),
                 Positioned(
-                  top: 225,
+                  top: 120,
                   left: 100,
                   right: 100,
                   child: appText(
@@ -128,11 +257,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 40),
             const Image(image: AssetImage("assets/images/Group 162.png")),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
 
             // ---- Daily Task Box ----
             Container(
-              height: 300,
+              height: 350,
               width: 335,
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
@@ -169,9 +298,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: ListView(
                       children:
                           tasks.map((task) {
+                            int index = tasks.indexOf(task);
                             return Row(
                               children: [
                                 Checkbox(
+                                  checkColor: Appcolors.primarycolor,
                                   value: task["done"],
                                   onChanged: (val) {
                                     setState(() {
@@ -180,24 +311,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   },
                                 ),
                                 Expanded(
-                                  child: Text(
-                                    "${task["task"]} by ${task["time"]}",
-                                    style: TextStyle(
-                                      decoration:
-                                          task["done"]
-                                              ? TextDecoration.lineThrough
-                                              : TextDecoration.none,
-                                    ),
+                                  child: appText(
+                                    text: "${task["task"]} by ${task["time"]}",
+                                    decoration:
+                                        task["done"]
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
                                   ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit,
+                                    color: Appcolors.primarycolor,
+                                  ),
+                                  onPressed: () {
+                                    _editTaskDialog(index);
+                                  },
                                 ),
                               ],
                             );
                           }).toList(),
                     ),
                   ),
+
+                  // Clear Completed Button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: appButton(
+                      onPressed: _clearCompletedTasks,
+                      text: "Clear ",
+                      height: 35,
+                      width: 90,
+                      backgroundcolor: Appcolors.primarycolor,
+                    ),
+                  ),
                 ],
               ),
             ),
+            const SizedBox(height: 100),
           ],
         ),
       ),

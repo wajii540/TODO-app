@@ -22,18 +22,18 @@ class RegistorScreen extends StatelessWidget {
             SizedBox(height: 10),
             appText(
               text: "Welcome Onboard!",
-              fontSize: 27,
+              fontSize: 30,
               fontWeight: FontWeight.w700,
               textcolor: Colors.black,
             ),
             SizedBox(height: 10),
             appText(
               text: "Let Help you in completing your tasks",
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w500,
               textcolor: Colors.black87,
             ),
-            SizedBox(height: 50),
+            SizedBox(height: 60),
             SizedBox(
               height: 600,
               width: 330,
@@ -54,7 +54,7 @@ class RegistorScreen extends StatelessWidget {
                     hintText: "************",
                     isPassword: true,
                   ),
-                  SizedBox(height: 15),
+                  SizedBox(height: 70),
                   appButton(
                     text: "Registor",
                     fontSize: 20,
@@ -63,7 +63,7 @@ class RegistorScreen extends StatelessWidget {
                     onPressed: () => context.go("/loginPage"),
                     backgroundcolor: Appcolors.primarycolor,
                   ),
-                  SizedBox(height: 15),
+                  SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

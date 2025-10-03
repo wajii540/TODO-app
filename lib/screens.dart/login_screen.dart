@@ -19,10 +19,10 @@ class LoginScreen extends StatelessWidget {
             Row(
               children: [Image(image: AssetImage("assets/images/shape.png"))],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 25),
             appText(
               text: "Welcome back!",
-              fontSize: 25,
+              fontSize: 30,
               fontWeight: FontWeight.w600,
               textcolor: Colors.black,
             ),
@@ -32,9 +32,9 @@ class LoginScreen extends StatelessWidget {
                 "assets/images/undraw_access_account_re_8spm 1.png",
               ),
             ),
-            SizedBox(height: 50),
+            SizedBox(height: 60),
             SizedBox(
-              height: 500,
+              height: 345,
               width: 330,
               child: Column(
                 children: [

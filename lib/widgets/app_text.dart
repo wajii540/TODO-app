@@ -8,6 +8,7 @@ Widget appText({
   dynamic colorsPalatte,
   fontfamily,
   TextAlign? textAlign,
+  TextDecoration? decoration,
 }) {
   return Text(
     text,
@@ -16,6 +17,7 @@ Widget appText({
       fontSize: fontSize ?? 20,
       fontWeight: fontWeight,
       color: textcolor,
+      decoration: decoration,
     ),
   );
 }
