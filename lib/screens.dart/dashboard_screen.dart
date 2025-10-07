@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
@@ -12,7 +14,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  List<Map<String, dynamic>> tasks = [];
+  // Firestore and Auth
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController _taskController = TextEditingController();
   TimeOfDay? _selectedTime;
@@ -87,15 +91,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             appButton(
-              onPressed: () {
+              onPressed: () async {
+                final user = _auth.currentUser;
+                if (user == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Not authenticated')),
+                  );
+                  return;
+                }
                 if (_taskController.text.isNotEmpty && _selectedTime != null) {
-                  setState(() {
-                    tasks.add({
-                      "task": _taskController.text,
-                      "time": _selectedTime!.format(context),
-                      "done": false,
-                    });
-                  });
+                  await _firestore
+                      .collection('users')
+                      .doc(user.uid)
+                      .collection('tasks')
+                      .add({
+                        'task': _taskController.text,
+                        'time': _selectedTime!.format(context),
+                        'done': false,
+                        'createdAt': FieldValue.serverTimestamp(),
+                      });
                   _taskController.clear();
                   _selectedTime = null;
                   Navigator.pop(context);
@@ -112,105 +126,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  //  Function to edit existing task
-  void _editTaskDialog(int index) {
-    _taskController.text = tasks[index]["task"];
-    _selectedTime = null;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: appText(
-            text: "Edit Task",
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-            textcolor: Colors.black,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              appTextField(
-                controller: _taskController,
-                label: "Task",
-                hintText: "Edit your task",
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: appText(
-                      text:
-                          _selectedTime == null
-                              ? "Old Time: ${tasks[index]["time"]}"
-                              : "New Time: ${_selectedTime!.format(context)}",
-                      fontSize: 15,
-                      textcolor: Colors.black,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      final TimeOfDay? picked = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          _selectedTime = picked;
-                        });
-                      }
-                    },
-                    child: appText(
-                      text: "Pick Time",
-                      fontSize: 15,
-                      textcolor: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: appText(
-                text: "Cancel",
-                fontSize: 15,
-                textcolor: Colors.black,
-              ),
-            ),
-            appButton(
-              onPressed: () {
-                if (_taskController.text.isNotEmpty) {
-                  setState(() {
-                    tasks[index]["task"] = _taskController.text;
-                    if (_selectedTime != null) {
-                      tasks[index]["time"] = _selectedTime!.format(context);
-                    }
-                  });
-                  _taskController.clear();
-                  _selectedTime = null;
-                  Navigator.pop(context);
-                }
-              },
-              text: "Save",
-              height: 35,
-              width: 90,
-              backgroundcolor: Appcolors.primarycolor,
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // ...edited: individual item edit handled inline in the list
 
   //  Function to clear completed tasks
-  void _clearCompletedTasks() {
-    setState(() {
-      tasks.removeWhere((task) => task["done"] == true);
-    });
+  Future<void> _clearCompletedTasks() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final completed =
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('tasks')
+            .where('done', isEqualTo: true)
+            .get();
+    for (final doc in completed.docs) {
+      await doc.reference.delete();
+    }
   }
 
   @override
@@ -293,28 +224,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Task List
+                  // Task List (from Firestore)
                   Expanded(
-                    child: ListView(
-                      children:
-                          tasks.map((task) {
-                            int index = tasks.indexOf(task);
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream:
+                          _auth.currentUser == null
+                              ? const Stream.empty()
+                              : _firestore
+                                  .collection('users')
+                                  .doc(_auth.currentUser!.uid)
+                                  .collection('tasks')
+                                  .orderBy('createdAt', descending: true)
+                                  .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Center(child: appText(text: 'No tasks'));
+                        }
+                        final docs = snapshot.data!.docs;
+                        return ListView.builder(
+                          itemCount: docs.length,
+                          itemBuilder: (context, i) {
+                            final doc = docs[i];
+                            final data = doc.data();
                             return Row(
                               children: [
                                 Checkbox(
                                   checkColor: Appcolors.primarycolor,
-                                  value: task["done"],
-                                  onChanged: (val) {
-                                    setState(() {
-                                      task["done"] = val!;
-                                    });
+                                  value: data['done'] ?? false,
+                                  onChanged: (val) async {
+                                    await doc.reference.update({'done': val});
                                   },
                                 ),
                                 Expanded(
                                   child: appText(
-                                    text: "${task["task"]} by ${task["time"]}",
+                                    text: "${data['task']} by ${data['time']}",
                                     decoration:
-                                        task["done"]
+                                        data['done'] == true
                                             ? TextDecoration.lineThrough
                                             : TextDecoration.none,
                                   ),
@@ -324,13 +275,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     Icons.edit,
                                     color: Appcolors.primarycolor,
                                   ),
-                                  onPressed: () {
-                                    _editTaskDialog(index);
+                                  onPressed: () async {
+                                    // prefill controller with existing text
+                                    _taskController.text = data['task'] ?? '';
+                                    _selectedTime = null;
+                                    await showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: appText(
+                                            text: 'Edit Task',
+                                            fontSize: 25,
+                                            fontWeight: FontWeight.bold,
+                                            textcolor: Colors.black,
+                                          ),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              appTextField(
+                                                controller: _taskController,
+                                                label: 'Task',
+                                                hintText: 'Edit your task',
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: appText(
+                                                      text:
+                                                          _selectedTime == null
+                                                              ? 'Old Time: ${data['time'] ?? ''}'
+                                                              : 'New Time: ${_selectedTime!.format(context)}',
+                                                      fontSize: 15,
+                                                      textcolor: Colors.black,
+                                                    ),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () async {
+                                                      final TimeOfDay? picked =
+                                                          await showTimePicker(
+                                                            context: context,
+                                                            initialTime:
+                                                                TimeOfDay.now(),
+                                                          );
+                                                      if (picked != null) {
+                                                        setState(() {
+                                                          _selectedTime =
+                                                              picked;
+                                                        });
+                                                      }
+                                                    },
+                                                    child: appText(
+                                                      text: 'Pick Time',
+                                                      fontSize: 15,
+                                                      textcolor: Colors.black,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: appText(
+                                                text: 'Cancel',
+                                                fontSize: 15,
+                                                textcolor: Colors.black,
+                                              ),
+                                            ),
+                                            appButton(
+                                              onPressed: () async {
+                                                final newTask =
+                                                    _taskController.text;
+                                                if (newTask.isNotEmpty) {
+                                                  final updateData =
+                                                      <String, dynamic>{
+                                                        'task': newTask,
+                                                      };
+                                                  if (_selectedTime != null) {
+                                                    updateData['time'] =
+                                                        _selectedTime!.format(
+                                                          context,
+                                                        );
+                                                  }
+                                                  await doc.reference.update(
+                                                    updateData,
+                                                  );
+                                                  _taskController.clear();
+                                                  _selectedTime = null;
+                                                  Navigator.pop(context);
+                                                }
+                                              },
+                                              text: 'Save',
+                                              height: 35,
+                                              width: 90,
+                                              backgroundcolor:
+                                                  Appcolors.primarycolor,
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () async {
+                                    await doc.reference.delete();
                                   },
                                 ),
                               ],
                             );
-                          }).toList(),
+                          },
+                        );
+                      },
                     ),
                   ),
 
@@ -338,7 +399,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: appButton(
-                      onPressed: _clearCompletedTasks,
+                      onPressed: () async {
+                        await _clearCompletedTasks();
+                      },
                       text: "Clear ",
                       height: 35,
                       width: 90,

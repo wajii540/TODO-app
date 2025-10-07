@@ -1,9 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:todo_app_ui/utils/app_color.dart';
 import 'package:todo_app_ui/widgets/app_text.dart';
 import 'package:todo_app_ui/widgets/elevatedbutton.dart';
 import 'package:todo_app_ui/widgets/text_field.dart';
+
+// Simple login screen wired to Firebase Auth
+
+final TextEditingController _loginEmailController = TextEditingController();
+final TextEditingController _loginPasswordController = TextEditingController();
+final FirebaseAuth _auth = FirebaseAuth.instance;
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -39,10 +46,12 @@ class LoginScreen extends StatelessWidget {
               child: Column(
                 children: [
                   appTextField(
+                    controller: _loginEmailController,
                     label: "Email",
                     hintText: "mary.elliot@mail.com",
                   ),
                   appTextField(
+                    controller: _loginPasswordController,
                     label: "Password",
                     hintText: "************",
                     isPassword: true,
@@ -68,7 +77,32 @@ class LoginScreen extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     textColor: Colors.black,
-                    onPressed: () => context.go("/dashboard"),
+                    onPressed: () async {
+                      final email = _loginEmailController.text.trim();
+                      final password = _loginPasswordController.text.trim();
+                      if (email.isEmpty || password.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Enter email and password'),
+                          ),
+                        );
+                        return;
+                      }
+                      try {
+                        await _auth.signInWithEmailAndPassword(
+                          email: email,
+                          password: password,
+                        );
+                        // navigate to dashboard on success
+                        // ignore: use_build_context_synchronously
+                        context.go('/dashboard');
+                      } on FirebaseAuthException catch (e) {
+                        print("FirebaseAuth error code: ${e.code}");
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(e.message ?? 'Login failed')),
+                        );
+                      }
+                    },
                     backgroundcolor: Appcolors.primarycolor,
                   ),
                   Row(
